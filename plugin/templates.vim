@@ -66,6 +66,10 @@ if !exists('g:templates_user_variables')
 	let g:templates_user_variables = []
 endif
 
+if !exists('g:templates_user_parts')
+	let g:templates_user_parts = []
+endif
+
 if !exists('g:templates_use_licensee')
 	let g:templates_use_licensee = 1
 endif
@@ -328,13 +332,50 @@ function <SID>EscapeRegex(raw)
 	return escape(a:raw, '/')
 endfunction
 
+
 " Template variable expansion. {{{1
 
 " Makes a single [variable] expansion, using [value] as replacement.
-"
+
 function <SID>TExpand(variable, value)
 	silent! execute "%s/\\V%" . <SID>EscapeRegex(a:variable) . "%/" .  <SID>EscapeRegex(a:value) . "/g"
 endfunction
+
+" name=plugin/templates_custom.vim
+" Replace %VARNAME% placeholders in the buffer without using :%s regex replacement.
+" - If the placeholder is the entire line ("%VARNAME%"), the line will be replaced
+"   with the provided value (list of lines or multi-line string).
+" - If the placeholder appears inline, it is replaced literally (no regex). If the
+"   replacement contains newlines it will insert the extra lines after the current line.
+
+function <SID>TExpandNoRegex(variable, value) abort
+  let l:token = '%' . a:variable . '%'
+  " prepare a literal search token for using with split() and match tests
+  " use very-nomagic so token is treated literally
+  let l:litpat = '\V' . substitute(l:token, '\\', '\\\\', 'g')
+
+  let lnum = 1
+  while lnum <= line('$')
+    let l:line = getline(lnum)
+
+    " exact-line replacement (most common for license headers)
+    if l:line ==# l:token
+      if type(a:value) == type([])
+        " setline accepts a list to replace one line with many
+        call setline(lnum, a:value)
+        let lnum += len(a:value)
+      else
+        " value might be a multiline string -> split into lines
+        let l:lines = split(a:value, "\n", 1)
+        call setline(lnum, l:lines)
+        let lnum += len(l:lines)
+      endif
+      continue
+    endif
+    let lnum += 1
+  endwhile
+endfunction
+
 
 " Performs variable expansion in a template once it was loaded {{{2
 "
@@ -409,6 +450,12 @@ function <SID>TExpandVars()
 		let l:value = function(funcname)()
 		call <SID>TExpand(l:varname, l:value)
 	endfor
+
+	for [l:varname, l:funcname] in g:templates_user_parts
+		let l:value = function(funcname)()
+    call <SID>TExpandNoRegex(l:varname, l:value)
+	endfor
+
 endfunction
 
 " }}}2
