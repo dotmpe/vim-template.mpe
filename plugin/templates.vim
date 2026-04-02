@@ -367,7 +367,8 @@ function <SID>TExpandNoRegex(variable, value) abort
       else
         " value might be a multiline string -> split into lines
         let l:lines = split(a:value, "\n", 1)
-        call setline(lnum, l:lines)
+        call setline(lnum, l:lines[0])
+        call append(lnum, l:lines[1:])
         let lnum += len(l:lines)
       endif
       continue
