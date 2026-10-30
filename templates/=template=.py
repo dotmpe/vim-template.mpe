@@ -1,4 +1,3 @@
-#! /usr/bin/env python3
 #
 # Copyright © %YEAR% %USER% <%MAIL%>
 #
@@ -6,5 +5,6 @@
 
 """
 """
+
 %HERE%
 # vim:fenc=utf-8
